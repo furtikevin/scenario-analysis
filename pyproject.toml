@@ -5,9 +5,15 @@ description = ""
 authors = [
     {name = "Kevin Furtlehner",email = "furtikevin@gmail.com"}
 ]
+packages = [
+    { include = "scenario_analysis", from = "src" }
+]
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "lxml (>=6.0.2,<7.0.0)",
+    "openai (>=2.14.0,<3.0.0)",
+    "python-dotenv (>=1.2.1,<2.0.0)"
 ]
 
 
