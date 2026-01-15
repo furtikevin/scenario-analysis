@@ -63,7 +63,7 @@ data/processed/*
 # =========================
 # Results & outputs
 # =========================
-outputs/
+output/
 results/
 
 # =========================

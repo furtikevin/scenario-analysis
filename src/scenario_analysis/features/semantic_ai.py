@@ -28,18 +28,29 @@ class AISemanticFeatureExtractor:
                                 lines.append(f"        Condition: {c.type}")
 
         lines.append(
+                        """
+            Based on the scenario structure above:
+
+            1. Classify the scenario type.
+            2. Describe the interaction between the ego vehicle and other actors.
+            3. Rate the scenario complexity on a scale from 1 (simple) to 5 (very complex).
+            4. Identify potential risk factors.
+            5. Estimate the probability of an accident occurring in this scenario on a scale from 0.0 to 1.0, assuming no external intervention and realistic driver behavior.
+            6. Classify the accident risk as one of: low, medium, high.
+
+            Return ONLY valid JSON. Do not include explanations or markdown.
+            Return valid JSON with exactly the following keys:
+            - scenarioType
+            - interactionDescription
+            - scenarioComplexity
+            - potentialRiskFactors
+            - riskEstimate
+            - riskLevel
             """
-Based on the scenario structure above:
-1. Classify the scenario type.
-2. Describe the interaction between the ego vehicle and other actors.
-3. Rate the scenario complexity on a scale from 1 (simple) to 5 (very complex).
-4. Identify potential risk factors.
-Return the result as JSON.
-"""
         )
 
         return "\n".join(lines)
 
-    def extract(self, scenario: Scenario):
+    def extract(self, scenario: Scenario) -> dict:
         prompt = self._build_prompt(scenario)
         return self.llm.analyze_scenario(prompt)

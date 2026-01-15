@@ -1,33 +1,56 @@
 from scenario_analysis.model.scenario import Scenario
 from scenario_analysis.features.basic_stats import BasicStatsExtractor
 from scenario_analysis.features.semantic_ai import AISemanticFeatureExtractor
+from scenario_analysis.analysis.road_graph import RoadGraphExtractor
+from scenario_analysis.features.road_graph_features import RoadGraphFeatureExtractor
+from scenario_analysis.analysis.accident_risk import AccidentRiskEstimator
 
 
 class FeatureVectorBuilder:
     """
-    Combines structural and semantic features into a single feature vector.
+    Combines structural, road-network, semantic and risk-related features
+    into a single feature vector.
     """
 
     def __init__(
         self,
         structural_extractor: BasicStatsExtractor,
         semantic_extractor: AISemanticFeatureExtractor,
+        road_graph_extractor: RoadGraphExtractor,
+        road_graph_feature_extractor: RoadGraphFeatureExtractor,
+        xodr_path: str,
     ):
         self.structural_extractor = structural_extractor
         self.semantic_extractor = semantic_extractor
+        self.road_graph_extractor = road_graph_extractor
+        self.road_graph_feature_extractor = road_graph_feature_extractor
+        self.xodr_path = xodr_path
+        self.risk_estimator = AccidentRiskEstimator()
 
     def build(self, scenario: Scenario) -> dict:
         feature_vector = {}
 
-        # Structural features
-        structural_features = self.structural_extractor.extract(scenario)
-        feature_vector.update(structural_features)
+        # Structural features (OpenSCENARIO)
+        feature_vector.update(
+            self.structural_extractor.extract(scenario)
+        )
+
+        # Road network features (OpenDRIVE)
+        graph = self.road_graph_extractor.extract(self.xodr_path)
+        road_features = self.road_graph_feature_extractor.extract(graph)
+        feature_vector.update(road_features)
 
         # Semantic features (LLM)
-        semantic_features = self.semantic_extractor.extract(scenario)
-        feature_vector["semantic_analysis"] = semantic_features
+        feature_vector["semantic_analysis"] = (
+            self.semantic_extractor.extract(scenario)
+        )
 
         # Metadata
         feature_vector["scenario_name"] = scenario.name
+
+        # Accident probability (hybrid)
+        feature_vector["accident_probability"] = (
+            self.risk_estimator.estimate(feature_vector)
+        )
 
         return feature_vector
