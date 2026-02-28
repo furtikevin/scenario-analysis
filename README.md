@@ -43,4 +43,5 @@ PYTHONPATH=src python3 src/scenario_analysis/cli.py --xosc data/raw/openscenario
 Sobald das Skript durchgelaufen ist, fasst es alle extrahierten Daten, die berechnete Unfallwahrscheinlichkeit und die textliche Begründung der KI übersichtlich in einer neuen JSON-Datei zusammen. 
 Diese Output-Dateien finden Sie dann sofort im Ordner `data/processed/feature_vectors/`.
 
-
+## Link zur Zeitaufzeichnung
+https://docs.google.com/spreadsheets/d/1tAq3cGrMMbV6lTrhqbYXshtAj3nQJrq_TpjcsFjuZM8/edit?usp=sharing
