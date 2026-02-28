@@ -27,8 +27,22 @@ class RoadGraphExtractor:
             road_id = road.attrib.get("id")
             if road_id is None:
                 continue
+                
+            # Count lanes
+            num_lanes = 0
+            lanes_el = road.find("lanes")
+            if lanes_el is not None:
+                for lane_sec in lanes_el.findall("laneSection"):
+                    # We can just count all <lane> elements except the center lane (id=0),
+                    # or count all that have type="driving". Let's count type="driving".
+                    for side in ["left", "right"]:
+                        side_el = lane_sec.find(side)
+                        if side_el is not None:
+                            for lane in side_el.findall("lane"):
+                                if lane.attrib.get("type", "") == "driving":
+                                    num_lanes += 1
 
-            graph.add_node(road_id)
+            graph.add_node(road_id, num_lanes=num_lanes)
 
             link = road.find("link")
             if link is not None:

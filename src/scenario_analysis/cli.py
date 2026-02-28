@@ -1,4 +1,8 @@
+import argparse
+import logging
+import sys
 from dotenv import load_dotenv
+
 load_dotenv()
 
 from scenario_analysis.ingestion.openscenario_xml import OpenScenarioXMLParser
@@ -10,48 +14,51 @@ from scenario_analysis.analysis.road_graph import RoadGraphExtractor
 from scenario_analysis.features.road_graph_features import RoadGraphFeatureExtractor
 from scenario_analysis.output.json_writer import JSONFeatureWriter
 
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
+def get_parser():
+    parser = argparse.ArgumentParser(description="Scenario Analysis CLI")
+    parser.add_argument("--xosc", required=True, help="Pfad zur OpenScenario (.xosc) XML Datei")
+    parser.add_argument("--xodr", required=True, help="Pfad zur OpenDrive (.xodr) Datei")
+    parser.add_argument("--outdir", default="data/processed/feature_vectors", help="Ausgabeverzeichnis für die JSON")
+    return parser
 
 def main():
-    parser = OpenScenarioXMLParser()
-    scenario = parser.parse(
-        "data/raw/openscenario/xml/SequentialEvents_0-100-0kph_Explicit.xosc"
-    )
-    
+    args = get_parser().parse_args()
 
-    print("=== SCENARIO INFO ===")
-    print("Name:", scenario.name)
-    print("Author:", scenario.author)
-    print("Date:", scenario.date)
+    try:
+        logging.info(f"Parsen von Szenario: {args.xosc}")
+        parser = OpenScenarioXMLParser()
+        scenario = parser.parse(args.xosc)
+        
+        logging.info(f"Szenario Info - Name: {scenario.name}, Author: {scenario.author}, Date: {scenario.date}")
 
-    print("\n=== FEATURE VECTOR ===")
+        logging.info("Erstelle Feature Vector...")
+        builder = FeatureVectorBuilder(
+            structural_extractor=BasicStatsExtractor(),
+            semantic_extractor=AISemanticFeatureExtractor(OpenAIClient()),
+            road_graph_extractor=RoadGraphExtractor(),
+            road_graph_feature_extractor=RoadGraphFeatureExtractor(),
+            xodr_path=args.xodr
+        )
 
-    builder = FeatureVectorBuilder(
-    structural_extractor=BasicStatsExtractor(),
-    semantic_extractor=AISemanticFeatureExtractor(OpenAIClient()),
-    road_graph_extractor=RoadGraphExtractor(),
-    road_graph_feature_extractor=RoadGraphFeatureExtractor(),
-    xodr_path="data/raw/openscenario/xodr/AB_RQ31_Straight.xodr"
-    )
+        feature_vector = builder.build(scenario)
 
-    
+        for k, v in feature_vector.items():
+            logging.info(f"Feature '{k}': {v}")
 
-    feature_vector = builder.build(scenario)
+        writer = JSONFeatureWriter(output_dir=args.outdir)
+        output_path = writer.write(
+            feature_vector=feature_vector,
+            scenario_name=scenario.name,
+            source="esmini"
+        )
 
-    for k, v in feature_vector.items():
-        print(f"{k}: {v}")
+        logging.info(f"Feature vector erfolgreich gespeichert unter: {output_path}")
 
-    writer = JSONFeatureWriter(
-    output_dir="data/processed/feature_vectors"
-    )
-
-    output_path = writer.write(
-        feature_vector=feature_vector,
-        scenario_name=scenario.name,
-        source="esmini"
-    )
-
-    print(f"\nFeature vector saved to: {output_path}")
+    except Exception as e:
+        logging.error(f"Fehler bei der Ausführung: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

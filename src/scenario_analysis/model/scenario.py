@@ -25,6 +25,7 @@ class Trigger:
 class Event:
     name: str
     trigger: Trigger | None
+    speeds: List[float] = field(default_factory=list)
 
 
 @dataclass
@@ -52,3 +53,4 @@ class Scenario:
     date: str
     entities: List[Entity] = field(default_factory=list)
     stories: List[Story] = field(default_factory=list)
+    init_speeds: List[float] = field(default_factory=list)

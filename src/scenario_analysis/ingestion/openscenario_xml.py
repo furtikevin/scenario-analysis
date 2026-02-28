@@ -70,7 +70,7 @@ class OpenScenarioXMLParser:
             author=author,
             date=date,
         )
-
+        
         # --------------------------------------------------------------
         # Entities
         # --------------------------------------------------------------
@@ -88,12 +88,40 @@ class OpenScenarioXMLParser:
                     etype = "misc"
 
                 scenario.entities.append(Entity(name=name, type=etype))
-
+        
         # --------------------------------------------------------------
         # Storyboard
         # --------------------------------------------------------------
 
         storyboard = self._find(root, "Storyboard")
+        
+        # --------------------------------------------------------------
+        # Init Speeds
+        # --------------------------------------------------------------
+        init_speeds = []
+        if storyboard is not None:
+            init_el = self._find(storyboard, "Init")
+            if init_el is not None:
+                actions_el = self._find(init_el, "Actions")
+                if actions_el is not None:
+                    for priv in self._findall(actions_el, "Private"):
+                        for priv_action in self._findall(priv, "PrivateAction"):
+                            long_act = self._find(priv_action, "LongitudinalAction")
+                            if long_act is not None:
+                                speed_act = self._find(long_act, "SpeedAction")
+                                if speed_act is not None:
+                                    target_speed = self._find(speed_act, "SpeedActionTarget")
+                                    if target_speed is not None:
+                                        abs_target = self._find(target_speed, "AbsoluteTargetSpeed")
+                                        if abs_target is not None:
+                                            val = abs_target.attrib.get("value")
+                                            if val is not None:
+                                                try:
+                                                    init_speeds.append(float(val))
+                                                except ValueError:
+                                                    pass
+        scenario.init_speeds = init_speeds
+
         if storyboard is not None:
             for story_el in self._findall(storyboard, "Story"):
                 story = Story(name=story_el.attrib.get("name", "unnamed_story"))
@@ -110,8 +138,30 @@ class OpenScenarioXMLParser:
                             for event_el in self._findall(man_el, "Event"):
                                 event_name = event_el.attrib.get("name", "unnamed_event")
                                 trigger = self._parse_start_trigger(event_el)
+                                
+                                # Extract speeds from actions
+                                speeds = []
+                                action_el = self._find(event_el, "Action")
+                                if action_el is not None:
+                                    # Private actions (like routing/speed)
+                                    for priv_action in self._findall(action_el, "PrivateAction"):
+                                        long_act = self._find(priv_action, "LongitudinalAction")
+                                        if long_act is not None:
+                                            speed_act = self._find(long_act, "SpeedAction")
+                                            if speed_act is not None:
+                                                target_speed = self._find(speed_act, "SpeedActionTarget")
+                                                if target_speed is not None:
+                                                    abs_target = self._find(target_speed, "AbsoluteTargetSpeed")
+                                                    if abs_target is not None:
+                                                        val = abs_target.attrib.get("value")
+                                                        if val is not None:
+                                                            try:
+                                                                speeds.append(float(val))
+                                                            except ValueError:
+                                                                pass
+
                                 maneuver.events.append(
-                                    Event(name=event_name, trigger=trigger)
+                                    Event(name=event_name, trigger=trigger, speeds=speeds)
                                 )
 
                             act.maneuvers.append(maneuver)

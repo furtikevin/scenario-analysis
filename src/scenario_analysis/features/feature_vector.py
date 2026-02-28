@@ -40,6 +40,14 @@ class FeatureVectorBuilder:
         road_features = self.road_graph_feature_extractor.extract(graph)
         feature_vector.update(road_features)
 
+        # Network risk summary
+        hotspots = road_features.get("risk_hotspots", [])
+        feature_vector["network_risk_summary"] = {
+            "total_hotspots_detected": len(hotspots),
+            "high_severity_hotspots": sum(1 for h in hotspots if h.get("severity", 0.0) >= 0.8),
+            "types_present": list(set(h.get("type") for h in hotspots))
+        }
+
         # Semantic features (LLM)
         feature_vector["semantic_analysis"] = (
             self.semantic_extractor.extract(scenario)
